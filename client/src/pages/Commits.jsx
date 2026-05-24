@@ -70,7 +70,7 @@ export default function Commits() {
             <div className="card-title">Activity Heatmap</div>
             <div className="card-subtitle">Contributions over the past year</div>
           </div>
-          <ActivityHeatmap />
+          <ActivityHeatmap data={data?.heatmap} />
         </div>
       </div>
     </div>

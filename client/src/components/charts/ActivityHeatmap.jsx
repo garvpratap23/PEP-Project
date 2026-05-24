@@ -28,15 +28,18 @@ export default function ActivityHeatmap({ data }) {
         {/* Grid */}
         <div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(52, 12px)', gap: 2 }}>
-            {cells.map((cell, idx) => (
-              <div
-                key={idx}
-                className="heatmap-cell"
-                data-level={cell.count}
-                style={{ gridRow: cell.day + 1, gridColumn: cell.week + 1 }}
-                title={`${cell.count} contribution${cell.count !== 1 ? 's' : ''}`}
-              />
-            ))}
+            {cells.map((cell, idx) => {
+              const level = cell.count === 0 ? 0 : cell.count <= 2 ? 1 : cell.count <= 4 ? 2 : cell.count <= 6 ? 3 : 4;
+              return (
+                <div
+                  key={idx}
+                  className="heatmap-cell"
+                  data-level={level}
+                  style={{ gridRow: cell.day + 1, gridColumn: cell.week + 1 }}
+                  title={`${cell.count} contribution${cell.count !== 1 ? 's' : ''}`}
+                />
+              );
+            })}
           </div>
         </div>
       </div>
