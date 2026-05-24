@@ -35,15 +35,33 @@ class GitHubService {
   }
 
   async getOrg(org) {
-    const { data } = await this.client.get(`/orgs/${org}`);
-    return data;
+    try {
+      const { data } = await this.client.get(`/orgs/${org}`);
+      return data;
+    } catch (err) {
+      if (err.response?.status === 404) {
+        const { data } = await this.client.get(`/users/${org}`);
+        return data;
+      }
+      throw err;
+    }
   }
 
   async getOrgRepos(org, page = 1) {
-    const { data } = await this.client.get(
-      `/orgs/${org}/repos?per_page=100&page=${page}&sort=updated`
-    );
-    return data;
+    try {
+      const { data } = await this.client.get(
+        `/orgs/${org}/repos?per_page=100&page=${page}&sort=updated`
+      );
+      return data;
+    } catch (err) {
+      if (err.response?.status === 404) {
+        const { data } = await this.client.get(
+          `/users/${org}/repos?per_page=100&page=${page}&sort=updated&type=owner`
+        );
+        return data;
+      }
+      throw err;
+    }
   }
 
   async getUserRepos(username) {
@@ -53,19 +71,32 @@ class GitHubService {
     return data;
   }
 
-  async getCommitActivity(owner, repo) {
+  async getAuthenticatedUserRepos(page = 1) {
+    const { data } = await this.client.get(
+      `/user/repos?per_page=100&page=${page}&sort=updated`
+    );
+    return data;
+  }
+
+  // Direct commits endpoint — reliable, no caching delay
+  async getRepoCommits(owner, repo, perPage = 100) {
     try {
-      const { data } = await this.client.get(`/repos/${owner}/${repo}/stats/commit_activity`);
-      return data || [];
+      const { data } = await this.client.get(
+        `/repos/${owner}/${repo}/commits?per_page=${perPage}`
+      );
+      return Array.isArray(data) ? data : [];
     } catch {
       return [];
     }
   }
 
-  async getContributorStats(owner, repo) {
+  // Direct contributors endpoint — reliable
+  async getRepoContributors(owner, repo) {
     try {
-      const { data } = await this.client.get(`/repos/${owner}/${repo}/stats/contributors`);
-      return data || [];
+      const { data } = await this.client.get(
+        `/repos/${owner}/${repo}/contributors?per_page=100&anon=false`
+      );
+      return Array.isArray(data) ? data : [];
     } catch {
       return [];
     }
@@ -76,7 +107,7 @@ class GitHubService {
       const { data } = await this.client.get(
         `/repos/${owner}/${repo}/pulls?state=${state}&per_page=${per_page}&sort=updated`
       );
-      return data;
+      return Array.isArray(data) ? data : [];
     } catch {
       return [];
     }
@@ -87,7 +118,7 @@ class GitHubService {
       const { data } = await this.client.get(
         `/repos/${owner}/${repo}/pulls/${prNumber}/reviews`
       );
-      return data;
+      return Array.isArray(data) ? data : [];
     } catch {
       return [];
     }
@@ -98,16 +129,7 @@ class GitHubService {
       const { data } = await this.client.get(
         `/repos/${owner}/${repo}/issues?state=${state}&per_page=100`
       );
-      return data.filter(i => !i.pull_request);
-    } catch {
-      return [];
-    }
-  }
-
-  async getCodeFrequency(owner, repo) {
-    try {
-      const { data } = await this.client.get(`/repos/${owner}/${repo}/stats/code_frequency`);
-      return data || [];
+      return Array.isArray(data) ? data.filter(i => !i.pull_request) : [];
     } catch {
       return [];
     }

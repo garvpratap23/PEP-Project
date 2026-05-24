@@ -1,12 +1,23 @@
 const GitHubService = require('../services/githubService');
 const Organization = require('../models/Organization');
 
-// GET /api/orgs — list user's orgs
+// GET /api/orgs — list user's orgs + personal account
 exports.getOrgs = async (req, res) => {
   try {
     const gh = new GitHubService(req.user.accessToken);
-    const orgs = await gh.getUserOrgs();
-    res.json(orgs);
+    const [user, orgs] = await Promise.all([
+      gh.getUser(),
+      gh.getUserOrgs()
+    ]);
+    
+    const personalOrg = {
+      id: user.id,
+      login: user.login,
+      avatar_url: user.avatar_url,
+      description: 'Personal Account'
+    };
+
+    res.json([personalOrg, ...orgs]);
   } catch (err) {
     console.error('getOrgs error:', err.message);
     res.status(500).json({ error: 'Failed to fetch organizations' });
@@ -28,9 +39,10 @@ exports.getOrgDetails = async (req, res) => {
     }
 
     const gh = new GitHubService(req.user.accessToken);
+    const isPersonal = org.toLowerCase() === req.user.username.toLowerCase();
     const [orgData, repos] = await Promise.all([
       gh.getOrg(org),
-      gh.getOrgRepos(org),
+      isPersonal ? gh.getAuthenticatedUserRepos() : gh.getOrgRepos(org),
     ]);
 
     const mappedRepos = repos.map(r => ({
