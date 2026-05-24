@@ -4,8 +4,17 @@ const jwt = require('jsonwebtoken');
 const generateToken = (userId) =>
   jwt.sign({ id: userId }, process.env.JWT_SECRET || 'dev_jwt_secret', { expiresIn: '7d' });
 
-// GET /auth/github — initiate OAuth
-exports.githubAuth = passport.authenticate('github', { scope: ['user', 'read:org', 'repo'] });
+// GET /auth/github — initiate OAuth, always force account selection
+exports.githubAuth = (req, res) => {
+  const params = new URLSearchParams({
+    client_id: process.env.GITHUB_CLIENT_ID,
+    scope: 'user read:org repo',
+    redirect_uri: `http://localhost:${process.env.PORT || 5000}/auth/callback`,
+    prompt: 'select_account',
+  });
+  res.redirect(`https://github.com/login/oauth/authorize?${params}`);
+};
+
 
 // GET /auth/callback — GitHub OAuth callback
 exports.githubCallback = [
@@ -16,8 +25,9 @@ exports.githubCallback = [
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      // Session-only: no maxAge, cookie cleared when browser closes
     });
+
     res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/dashboard`);
   },
 ];

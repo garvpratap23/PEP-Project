@@ -8,6 +8,7 @@ passport.use(new GitHubStrategy(
     clientSecret: process.env.GITHUB_CLIENT_SECRET || 'dummy_secret',
     callbackURL: `http://localhost:${process.env.PORT || 5000}/auth/callback`,
     scope: ['user', 'read:org', 'repo'],
+    state: false, // we handle the redirect manually so no state CSRF token
   },
   async (accessToken, refreshToken, profile, done) => {
     try {
