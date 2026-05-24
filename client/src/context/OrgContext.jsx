@@ -11,25 +11,49 @@ export const OrgProvider = ({ children }) => {
   const [selectedOrg, setSelectedOrg] = useState(null);
   const [orgDetails, setOrgDetails] = useState(null);
   const [selectedRepo, setSelectedRepo] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Fetch org list on login
   useEffect(() => {
-    if (!user) { setOrgs([]); setOrgDetails(null); return; }
+    if (!user) {
+      setOrgs([]);
+      setSelectedOrg(null);
+      setOrgDetails(null);
+      setSelectedRepo(null);
+      setLoading(false);
+      return;
+    }
     if (isDemoMode) {
       setOrgs([DEMO_ORG]);
       setSelectedOrg(DEMO_ORG.login);
       setOrgDetails(DEMO_ORG);
       setSelectedRepo(DEMO_ORG.repositories[0]?.name || null);
+      setLoading(false);
       return;
     }
+    setLoading(true);
     orgApi.getOrgs()
       .then(data => {
         setOrgs(data);
-        if (data.length > 0) setSelectedOrg(data[0].login);
+        if (data.length > 0) {
+          setSelectedOrg(data[0].login);
+        } else {
+          setSelectedOrg(null);
+          setOrgDetails(null);
+          setSelectedRepo(null);
+          setLoading(false);
+        }
       })
-      .catch(console.error);
+      .catch(err => {
+        console.error('Failed to load organizations:', err);
+        setLoading(false);
+      });
   }, [user, isDemoMode]);
+
+  // Reset selected repo when organization changes
+  useEffect(() => {
+    setSelectedRepo(null);
+  }, [selectedOrg]);
 
   // Fetch org details when selected org changes
   const fetchOrgDetails = useCallback(async (refresh = false) => {
@@ -38,8 +62,13 @@ export const OrgProvider = ({ children }) => {
     try {
       const data = await orgApi.getOrgDetails(selectedOrg, refresh);
       setOrgDetails(data);
-      if (data.repositories?.length > 0 && !selectedRepo) {
-        setSelectedRepo(data.repositories[0].name);
+      const repoNames = data.repositories?.map(r => r.name) || [];
+      if (repoNames.length > 0) {
+        if (!selectedRepo || !repoNames.includes(selectedRepo)) {
+          setSelectedRepo(repoNames[0]);
+        }
+      } else {
+        setSelectedRepo(null);
       }
     } catch (err) {
       console.error('Failed to load org details:', err);

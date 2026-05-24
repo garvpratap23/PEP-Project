@@ -28,7 +28,11 @@ export const useAnalytics = (type) => {
       setLoading(false);
       return;
     }
-    if (!selectedOrg || !selectedRepo) return;
+    if (!selectedOrg || !selectedRepo) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
